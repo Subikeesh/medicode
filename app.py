@@ -6,7 +6,12 @@ from groq import Groq
 from fpdf import FPDF
 import datetime
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+import shutil
+tesseract_path = shutil.which("tesseract")
+if tesseract_path:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+else:
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 client = Groq(api_key="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")
 
 st.set_page_config(page_title="MediCode", layout="wide")
