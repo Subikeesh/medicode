@@ -1,7 +1,7 @@
-fpdf2==2.8.7
-groq==1.1.2
-numpy==2.4.4
-Pillow==12.2.0
-pytesseract==0.3.13
-streamlit==1.43.0
-pandas==3.0.2
+fpdf2
+groq
+numpy
+Pillow
+pytesseract
+streamlit
+pandas
