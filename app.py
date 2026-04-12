@@ -1,6 +1,5 @@
 import streamlit as st
 import pytesseract
-import cv2
 import numpy as np
 from PIL import Image
 from groq import Groq
@@ -81,9 +80,7 @@ def ocr_page():
         st.image(image, caption="Uploaded Prescription", use_column_width=True)
         if st.button("Extract Text and Generate ICD-10 Codes", use_container_width=True):
             with st.spinner("Reading prescription..."):
-                img_array = np.array(image)
-                gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-                gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+                gray = image.convert('L')
                 text = pytesseract.image_to_string(gray)
                 st.session_state.ocr_text = text
             with st.spinner("AI generating ICD-10 codes..."):
