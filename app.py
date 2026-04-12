@@ -8,7 +8,7 @@ from fpdf import FPDF
 import datetime
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-client = Groq(api_key="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")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 st.set_page_config(page_title="MediCode", layout="wide")
 
