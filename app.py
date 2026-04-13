@@ -442,7 +442,8 @@ Important rules:
 
     elif submitted:
         st.warning("Please fill all fields and upload your certificate.")
-        def coder_profile_page():
+
+def coder_profile_page():
     st.title("My Coder Profile")
     st.success(f"Verified Medical Coder: {st.session_state.username}")
 
