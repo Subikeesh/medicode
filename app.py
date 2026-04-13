@@ -5,6 +5,8 @@ from PIL import Image
 from groq import Groq
 from fpdf import FPDF
 import datetime
+from zoneinfo import ZoneInfo
+IST = ZoneInfo("Asia/Kolkata")
 
 import shutil
 tesseract_path = shutil.which("tesseract")
@@ -88,6 +90,26 @@ def ocr_page():
                 gray = image.convert('L')
                 text = pytesseract.image_to_string(gray)
                 st.session_state.ocr_text = text
+
+            # Validate if image is a medical prescription
+            with st.spinner("Validating prescription..."):
+                validate_prompt = f"""Look at this text extracted from an uploaded image:
+
+{text[:500]}
+
+Is this text from a medical prescription or clinical document?
+A valid prescription contains things like: medicine names, dosage, patient name, doctor name, diagnosis, symptoms, or medical terms.
+
+Reply with only one word: YES or NO"""
+                validation = ask_groq(validate_prompt).strip().upper()
+
+            if "NO" in validation or len(text.strip()) < 10:
+                st.error("This does not look like a medical prescription!")
+                st.warning("Please upload a valid doctor's prescription or clinical note.")
+                st.info("Valid prescriptions contain: medicine names, dosage, diagnosis, symptoms, or medical terms.")
+                st.session_state.ocr_text = ""
+                st.session_state.icd_codes = []
+                st.stop()
             with st.spinner("AI generating ICD-10 codes..."):
                 prompt = f"""You are an expert medical coder. Analyze this clinical text from a doctor prescription and provide exactly 5 ICD-10 codes.
 
@@ -181,7 +203,7 @@ Do NOT use any placeholders like [Your Name] or [Date] - fill everything with re
 
 Use these exact details:
 - Verified by: {st.session_state.username}
-- Date: {datetime.datetime.now().strftime('%Y-%m-%d')}
+- Date: {datetime.datetime.now(IST).strftime('%Y-%m-%d')}
 - Issuing Organization: MediCode AI Platform
 
 Verified ICD-10 codes:
@@ -204,7 +226,7 @@ Use formal medical language. Minimum 200 words. No placeholders."""
         pdf.set_font("Arial", "B", 20)
         pdf.cell(0, 12, "MediCode - Insurance Claim Summary", ln=True, align="C")
         pdf.set_font("Arial", "", 10)
-        pdf.cell(0, 8, f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True, align="C")
+        pdf.cell(0, 8, f"Date: {datetime.datetime.now(IST).strftime('%Y-%m-%d %H:%M')}", ln=True, align="C")
         pdf.cell(0, 8, f"Verified by: {st.session_state.username}", ln=True, align="C")
         pdf.ln(6)
         pdf.set_font("Arial", "B", 14)
@@ -252,7 +274,7 @@ Use formal medical language. Minimum 200 words. No placeholders."""
         pdf.set_font("Arial", "B", 12)
         pdf.cell(0, 8, "Verified Medical Coder Signature: ________________________", ln=True)
         pdf.cell(0, 8, f"Coder: {st.session_state.username}", ln=True)
-        pdf.cell(0, 8, f"Date: {datetime.datetime.now().strftime('%Y-%m-%d')}", ln=True)
+        pdf.cell(0, 8, f"Date: {datetime.datetime.now(IST).strftime('%Y-%m-%d')}", ln=True)
         pdf_bytes = bytes(pdf.output())
         st.download_button("Download Claim PDF", data=pdf_bytes, file_name="medicode_claim.pdf", mime="application/pdf", use_container_width=True)
         st.success("Claim ready! Download and send to insurance company.")
@@ -373,7 +395,7 @@ Important rules:
                 "speciality": speciality,
                 "experience": experience,
                 "cert_number": result.get('CERT_NUMBER', 'N/A'),
-                "verified_on": datetime.datetime.now().strftime('%Y-%m-%d')
+                "verified_on": datetime.datetime.now(IST).strftime('%Y-%m-%d')
             })
 
             # Save to file
@@ -387,7 +409,7 @@ Important rules:
                 "email": email,
                 "credential": credential,
                 "speciality": speciality,
-                "verified_on": datetime.datetime.now().strftime('%Y-%m-%d')
+                "verified_on": datetime.datetime.now(IST).strftime('%Y-%m-%d')
             })
             with open("verified_coders.json", "w") as f:
                 json.dump(coders, f)
