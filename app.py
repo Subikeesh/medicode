@@ -442,6 +442,134 @@ Important rules:
 
     elif submitted:
         st.warning("Please fill all fields and upload your certificate.")
+        def coder_profile_page():
+    st.title("My Coder Profile")
+    st.success(f"Verified Medical Coder: {st.session_state.username}")
+
+    try:
+        with open("verified_coders.json", "r") as f:
+            coders = json.load(f)
+    except:
+        coders = []
+
+    current_coder = None
+    current_index = None
+    for i, c in enumerate(coders):
+        if c["name"].lower() in st.session_state.username.lower() or st.session_state.username.lower() in c["name"].lower():
+            current_coder = c
+            current_index = i
+            break
+
+    if not current_coder:
+        st.warning("Profile not found. Please register first.")
+        return
+
+    st.markdown("### Your Verified Details")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+<div style='background:#E1F5EE;border-radius:10px;padding:16px;border:1px solid #9FE1CB'>
+<p><b>Name:</b> {current_coder['name']}</p>
+<p><b>Email:</b> {current_coder['email']}</p>
+<p><b>Credential:</b> {current_coder['credential']}</p>
+<p><b>Speciality:</b> {current_coder['speciality']}</p>
+<p><b>Verified On:</b> {current_coder['verified_on']}</p>
+<p><b>Status:</b> Verified</p>
+</div>""", unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+<div style='background:#E6F1FB;border-radius:10px;padding:16px;border:1px solid #B5D4F4'>
+<h4 style='color:#185FA5'>Verification Badge</h4>
+<p style='color:#185FA5;font-size:24px;font-weight:500'>VERIFIED</p>
+<p style='color:#185FA5'>Certified Medical Coder</p>
+<p style='color:#185FA5'>MediCode Platform</p>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("### Update Your Profile")
+    st.info("You can update your details below. Name and credential cannot be changed — contact admin for those.")
+
+    with st.form("update_profile"):
+        new_email = st.text_input("Email Address", value=current_coder.get("email", ""))
+        new_speciality = st.selectbox("Speciality", [
+            "Internal Medicine", "Cardiology", "Oncology",
+            "Pediatrics", "Orthopedics", "Neurology", "General"
+        ], index=["Internal Medicine", "Cardiology", "Oncology",
+            "Pediatrics", "Orthopedics", "Neurology", "General"].index(
+                current_coder.get("speciality", "General")
+            ) if current_coder.get("speciality") in ["Internal Medicine", "Cardiology", "Oncology",
+            "Pediatrics", "Orthopedics", "Neurology", "General"] else 0)
+        new_experience = st.selectbox("Years of Experience", [
+            "0-2 years", "2-5 years", "5-10 years", "10+ years"
+        ])
+        new_phone = st.text_input("Phone Number", value=current_coder.get("phone", ""))
+        new_hospital = st.text_input("Hospital / Clinic Name", value=current_coder.get("hospital", ""))
+        new_city = st.text_input("City", value=current_coder.get("city", "Chennai"))
+
+        submitted = st.form_submit_button("Update Profile", use_container_width=True)
+
+    if submitted:
+        coders[current_index]["email"] = new_email
+        coders[current_index]["speciality"] = new_speciality
+        coders[current_index]["experience"] = new_experience
+        coders[current_index]["phone"] = new_phone
+        coders[current_index]["hospital"] = new_hospital
+        coders[current_index]["city"] = new_city
+        coders[current_index]["last_updated"] = datetime.datetime.now(IST).strftime('%Y-%m-%d %H:%M')
+
+        with open("verified_coders.json", "w") as f:
+            json.dump(coders, f)
+
+        st.success("Profile updated successfully!")
+        st.balloons()
+
+    st.markdown("---")
+    st.markdown("### Upload New Certificate")
+    st.info("Upload a new certificate if your credential has been renewed or upgraded.")
+
+    new_cert = st.file_uploader("Upload New Certificate (JPG, PNG)", type=["jpg","jpeg","png"])
+    if new_cert:
+        image = Image.open(new_cert)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(new_cert, caption="New Certificate", width=300)
+        with col2:
+            if st.button("Verify New Certificate", use_container_width=True):
+                with st.spinner("Verifying new certificate..."):
+                    gray = image.convert('L')
+                    cert_text = pytesseract.image_to_string(gray)
+                    prompt = f"""Verify this medical coding certificate.
+Certificate text: {cert_text}
+Coder name: {current_coder['name']}
+
+Check: Is it a valid medical coding certificate from AAPC/AHIMA/NHA? Does name match?
+
+Reply format:
+VERIFIED: YES or NO
+CREDENTIAL_FOUND: credential type
+ISSUING_BODY: organization name
+REASON: one line"""
+                    response = ask_groq(prompt)
+                    lines = response.strip().split("\n")
+                    result = {}
+                    for line in lines:
+                        if ":" in line:
+                            key, val = line.split(":", 1)
+                            result[key.strip()] = val.strip()
+
+                name_match = True
+                org_found = any(org.lower() in result.get("ISSUING_BODY","").lower() for org in ["AAPC","AHIMA","NHA","Academy"])
+                cred_found = len(result.get("CREDENTIAL_FOUND","")) > 2
+
+                if org_found and cred_found:
+                    coders[current_index]["credential"] = result.get("CREDENTIAL_FOUND", current_coder["credential"])
+                    coders[current_index]["verified_on"] = datetime.datetime.now(IST).strftime('%Y-%m-%d')
+                    with open("verified_coders.json", "w") as f:
+                        json.dump(coders, f)
+                    st.success("New certificate verified and profile updated!")
+                    st.balloons()
+                else:
+                    st.error("Could not verify new certificate. Contact admin.")
 def admin_page():
     st.title("MediCode Admin Dashboard")
     st.markdown(f"Welcome, **{st.session_state.username}**")
@@ -606,7 +734,7 @@ def main():
         if role == "patient":
             page = st.radio("Menu", ["Upload Prescription", "Register as Coder"])
         elif role == "coder":
-            page = st.radio("Menu", ["Review Codes", "Claim Summary"])
+            page = st.radio("Menu", ["Review Codes", "Claim Summary", "My Profile"])
         elif role == "admin":
             page = st.radio("Menu", ["Upload Prescription", "Review Codes", "Claim Summary", "Admin Panel"])
         st.markdown("---")
@@ -624,5 +752,7 @@ def main():
         claim_page()
     elif page == "Admin Panel":
         admin_page()
+    elif page == "My Profile":
+        coder_profile_page()
 
 main()
