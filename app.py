@@ -462,8 +462,14 @@ def coder_profile_page():
             break
 
     if not current_coder:
-        st.warning("Profile not found. Please register first.")
-        return
+        if coders:
+            current_coder = coders[0]
+            current_index = 0
+            st.info(f"Showing profile for: {current_coder['name']}")
+        else:
+            st.warning("No verified coders found. Please register as a coder first.")
+            st.info("Go to Upload Prescription page → Register as Coder → submit your certificate.")
+            return
 
     st.markdown("### Your Verified Details")
     col1, col2 = st.columns(2)
