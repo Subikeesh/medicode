@@ -309,9 +309,7 @@ def coder_register_page():
         with st.spinner("AI is verifying your certificate..."):
             # OCR the certificate
             image = Image.open(cert_file)
-            img_array = np.array(image)
-            gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-            gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            gray = image.convert('L')
             cert_text = pytesseract.image_to_string(gray)
 
             # AI verifies the certificate
