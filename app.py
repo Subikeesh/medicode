@@ -37,6 +37,23 @@ USERS = {
 
 import json
 
+def log_audit(action, user, details=""):
+    try:
+        try:
+            with open("audit_log.json", "r") as f:
+                logs = json.load(f)
+        except:
+            logs = []
+        logs.append({
+            "timestamp": datetime.datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S'),
+            "user": user,
+            "action": action,
+            "details": details
+        })
+        with open("audit_log.json", "w") as f:
+            json.dump(logs, f)
+    except:
+        pass
 def save_data(ocr_text, icd_codes):
     with open("medicode_data.json", "w") as f:
         json.dump({"ocr_text": ocr_text, "icd_codes": icd_codes}, f)
@@ -136,6 +153,7 @@ E11.9 | Type 2 diabetes without complications | 95% | Patient has documented dia
                             })
                 st.session_state.icd_codes = codes
                 save_data(st.session_state.ocr_text, codes)
+                log_audit("PRESCRIPTION UPLOADED", st.session_state.username, f"{len(codes)} ICD codes generated")
             st.success("Done!")
             st.markdown("### Extracted Text")
             st.text_area("OCR Output", st.session_state.ocr_text, height=150)
@@ -185,6 +203,7 @@ def coder_page():
                 })
     if st.button("Sign Off and Generate Claim", use_container_width=True):
         st.session_state.approved_codes = approved
+        log_audit("CODES VERIFIED", st.session_state.username, f"{len(approved)} codes approved by certified coder")
         st.success("Codes verified! Go to Claim Summary in the sidebar.")
 
 def claim_page():
@@ -276,6 +295,7 @@ Use formal medical language. Minimum 200 words. No placeholders."""
         pdf.cell(0, 8, f"Coder: {st.session_state.username}", ln=True)
         pdf.cell(0, 8, f"Date: {datetime.datetime.now(IST).strftime('%Y-%m-%d')}", ln=True)
         pdf_bytes = bytes(pdf.output())
+        log_audit("CLAIM PDF DOWNLOADED", st.session_state.username, f"{len(st.session_state.approved_codes)} verified codes in claim")
         st.download_button("Download Claim PDF", data=pdf_bytes, file_name="medicode_claim.pdf", mime="application/pdf", use_container_width=True)
         st.success("Claim ready! Download and send to insurance company.")
 def coder_register_page():
@@ -674,6 +694,62 @@ def admin_page():
 
     st.markdown("---")
 
+    st.markdown("---")
+    st.markdown("## Audit Trail")
+    try:
+        with open("audit_log.json", "r") as f:
+            logs = json.load(f)
+        if logs:
+            logs_reversed = list(reversed(logs))
+            audit_data = {
+                "Timestamp": [l["timestamp"] for l in logs_reversed],
+                "User": [l["user"] for l in logs_reversed],
+                "Action": [l["action"] for l in logs_reversed],
+                "Details": [l["details"] for l in logs_reversed]
+            }
+            df_audit = pd.DataFrame(audit_data)
+            st.dataframe(df_audit, use_container_width=True)
+            csv = df_audit.to_csv(index=False)
+            st.download_button(
+                "Download Audit Log CSV",
+                data=csv,
+                file_name="medicode_audit_log.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No audit logs yet. Start processing cases to see logs here.")
+    except:
+        st.info("No audit logs yet.")
+
+    st.markdown("---")
+    st.markdown("---")
+    st.markdown("## Audit Trail")
+    try:
+        with open("audit_log.json", "r") as f:
+            logs = json.load(f)
+        if logs:
+            logs_reversed = list(reversed(logs))
+            audit_data = {
+                "Timestamp": [l["timestamp"] for l in logs_reversed],
+                "User": [l["user"] for l in logs_reversed],
+                "Action": [l["action"] for l in logs_reversed],
+                "Details": [l["details"] for l in logs_reversed]
+            }
+            df_audit = pd.DataFrame(audit_data)
+            st.dataframe(df_audit, use_container_width=True)
+            csv = df_audit.to_csv(index=False)
+            st.download_button(
+                "Download Audit Log CSV",
+                data=csv,
+                file_name="medicode_audit_log.csv",
+                mime="text/csv"
+            )
+        else:
+            st.info("No audit logs yet. Start processing cases to see logs here.")
+    except:
+        st.info("No audit logs yet.")
+
+    st.markdown("---")
     # ---- CODER VERIFICATION ----
     st.markdown("## Pending Coder Verification Requests")
     with st.expander("Dr. Meena S - AAPC CPC Certificate uploaded"):
