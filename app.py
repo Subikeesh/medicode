@@ -694,32 +694,6 @@ def admin_page():
 
     st.markdown("---")
 
-    st.markdown("---")
-    st.markdown("## Audit Trail")
-    try:
-        with open("audit_log.json", "r") as f:
-            logs = json.load(f)
-        if logs:
-            logs_reversed = list(reversed(logs))
-            audit_data = {
-                "Timestamp": [l["timestamp"] for l in logs_reversed],
-                "User": [l["user"] for l in logs_reversed],
-                "Action": [l["action"] for l in logs_reversed],
-                "Details": [l["details"] for l in logs_reversed]
-            }
-            df_audit = pd.DataFrame(audit_data)
-            st.dataframe(df_audit, use_container_width=True)
-            csv = df_audit.to_csv(index=False)
-            st.download_button(
-                "Download Audit Log CSV",
-                data=csv,
-                file_name="medicode_audit_log.csv",
-                mime="text/csv"
-            )
-        else:
-            st.info("No audit logs yet. Start processing cases to see logs here.")
-    except:
-        st.info("No audit logs yet.")
 
     st.markdown("---")
     st.markdown("---")
