@@ -14,7 +14,7 @@ if tesseract_path:
     pytesseract.pytesseract.tesseract_cmd = tesseract_path
 else:
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-client = Groq(api_key="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")
+client = Groq(api_key="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")
 
 st.set_page_config(page_title="MediCode", layout="wide")
 
